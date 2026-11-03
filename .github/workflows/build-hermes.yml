@@ -29,6 +29,36 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y build-essential git
 
+      - name: Fix icon tool module type
+        working-directory: hermes-agent
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          p = Path("apps/desktop/scripts/run-electron-builder.mjs")
+          text = p.read_text()
+
+          old = "    fs.cpSync(directory, destination, { recursive: true, verbatimSymlinks: true })"
+          addition = (
+              "\n    if (name === 'icons') "
+              "fs.writeFileSync(path.join(destination, 'package.json'), "
+              "'{\"type\":\"commonjs\"}')"
+          )
+
+          if text.count(old) != 1:
+              raise SystemExit(
+                  "Could not find the expected patch location; "
+                  "Hermes source may have changed."
+              )
+
+          p.write_text(text.replace(old, old + addition, 1))
+          PY
+
+          git config user.name "Hermes Pi build"
+          git config user.email "hermes-pi-build@users.noreply.github.com"
+          git add apps/desktop/scripts/run-electron-builder.mjs
+          git commit -m "Fix Linux icon tool module type"
+
       - name: Build the ARM64 app
         working-directory: hermes-agent
         run: |
