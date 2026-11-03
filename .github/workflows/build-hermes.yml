@@ -1,1 +1,43 @@
+name: Build Hermes for Raspberry Pi ARM64
 
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-22.04-arm
+    timeout-minutes: 180
+
+    steps:
+      - name: Download official Hermes source
+        uses: actions/checkout@v4
+        with:
+          repository: NousResearch/hermes-agent
+          path: hermes-agent
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install build prerequisites
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential git
+
+      - name: Build the ARM64 app
+        working-directory: hermes-agent
+        run: |
+          uname -m
+          bash scripts/build-bundle.sh
+
+      - name: Upload AppImage
+        uses: actions/upload-artifact@v4
+        with:
+          name: hermes-linux-arm64
+          path: hermes-agent/apps/desktop/release/*.AppImage
+          if-no-files-found: error
